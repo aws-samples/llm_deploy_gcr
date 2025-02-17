@@ -10,11 +10,7 @@ COPY app/ /app
 
 # 修改restapi
 RUN \
-curl -L -O "https://github.com/peak/s5cmd/releases/download/v2.2.2/s5cmd_2.2.2_Linux-64bit.tar.gz"; \
-tar zxvf s5cmd_2.2.2_Linux-64bit.tar.gz; \
-rm s5cmd_2.2.2_Linux-64bit.tar.gz; \
-mv s5cmd /app/s5cmd; \
-chmod +x /app/s5cmd; \
+python3 -m pip install s5cmd --no-cache-dir; \
 chmod +x /app/serve
 
 # 让端口8080在容器外可用
