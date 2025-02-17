@@ -9,11 +9,11 @@ ACCOUNT=${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}
 REGION=${REGION:-$(aws configure get region)}
 
 # If the repository doesn't exist in ECR, create it.
-aws ecr describe-repositories --repository-names "${REPO_NAMESPACE}" > /dev/null 2>&1
+aws ecr describe-repositories --region ${REGION} --repository-names "${REPO_NAMESPACE}" > /dev/null 2>&1
 if [ $? -ne 0 ]
 then
 echo "create repository:" "${REPO_NAMESPACE}"
-aws ecr create-repository --repository-name "${REPO_NAMESPACE}" > /dev/null
+aws ecr create-repository --region ${REGION} --repository-name "${REPO_NAMESPACE}" > /dev/null
 fi
 
 # if nwcd mirror
