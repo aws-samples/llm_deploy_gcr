@@ -16,6 +16,11 @@ echo "create repository:" "${REPO_NAMESPACE}"
 aws ecr create-repository --repository-name "${REPO_NAMESPACE}" > /dev/null
 fi
 
+# if nwcd mirror
+if [[ "$VLLM_REPO" = 048912060910.dkr.ecr.cn-northwest-1.amazonaws.com.cn/* ]]; then
+    aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin 048912060910.dkr.ecr.cn-northwest-1.amazonaws.com.cn
+fi
+
 # Log into Docker
 if [[ "$REGION" = cn* ]]; then
     aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com.cn
