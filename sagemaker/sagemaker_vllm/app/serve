@@ -2,8 +2,12 @@
 
 
 # Set the directory to check
+
 base_dir="/opt/ml/model/"
+
 export SAGEMAKER_BIND_TO_PORT=${SAGEMAKER_BIND_TO_PORT:-8080}
+export VARIANT_NAME=${VARIANT_NAME:-"AllTraffic"}
+export VLLM_METRICS_INTERVAL=${VLLM_METRICS_INTERVAL:-10}
 
 # Check if the directory exists
 if [ ! -d "$base_dir" ]; then
@@ -30,11 +34,16 @@ else
     if [ -f "$model_dir/start.sh" ]; then
         # If start.sh file exists, use its content as model_id
         cd $(dirname "$model_dir/start.sh")
-        echo "Running $model_dir/start.sh"
         cp $model_dir/start.sh /app/
         chmod +x /app/start.sh
+
+        echo "Starting ssh helper"
+        python3 /app/ssh_helper.py
+
+        echo "Starting metrics_uploader"
+        python3 /app/metrics_uploader.py -i $VLLM_METRICS_INTERVAL --cloudwatch &
+
+        echo "Running $model_dir/start.sh"
         /app/start.sh
-    else
-        echo "ERROR: no start.sh in $model_dir"
     fi
 fi
