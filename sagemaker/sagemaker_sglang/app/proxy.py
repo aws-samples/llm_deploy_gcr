@@ -1,82 +1,80 @@
 import json
+import httpx
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import StreamingResponse
+import uvicorn
 
-from aiohttp import web
-import aiohttp
-
+app = FastAPI()
 base_url = "http://127.0.0.1:8000"
 
-async def chat_completion_handler(request):
+async def proxy_request(request: Request, target_url: str):
     try:
-        data = await request.read()
-        payload = json.loads(data)
-        async with aiohttp.ClientSession() as session:
-            if "messages" in payload:
-                target_url = f"{base_url}/v1/chat/completions"
-            else:
-                target_url = f"{base_url}/v1/completions"
-            async with session.request(
+        # Get request body
+        body = await request.body()
+        
+        # Get request headers
+        headers = dict(request.headers)
+        # Remove host header to avoid conflicts
+        headers.pop("host", None)
+        
+        # Get query parameters
+        params = dict(request.query_params)
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
                 method=request.method,
                 url=target_url,
-                headers=request.headers,
-                data=data,
-                params=request.query
-            ) as target_response:
-                # 创建响应对象，使用目标响应的状态码
-                response = web.StreamResponse(
-                    status=target_response.status,
-                    headers=target_response.headers
+                headers=headers,
+                content=body,
+                params=params,
+                timeout=None
+            )
+            
+            # For streaming responses
+            if "content-type" in response.headers and "text/event-stream" in response.headers["content-type"]:
+                return StreamingResponse(
+                    response.aiter_bytes(),
+                    status_code=response.status_code,
+                    headers=dict(response.headers)
                 )
-
-                # 准备响应
-                await response.prepare(request)
-
-                # 流式传输响应体
-                async for chunk in target_response.content.iter_any():
-                    await response.write(chunk)
-
-                await response.write_eof()
-                return response
-
-    except aiohttp.ClientError as e:
-        return web.Response(
-            status=502,
-            text=f"Proxy Error: {str(e)}"
+            
+            # For regular responses
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers)
+            )
+    except httpx.RequestError as e:
+        return Response(
+            content=f"Proxy Error: {str(e)}",
+            status_code=502
         )
 
-async def health_check_handler(request):
+@app.post("/invocations")
+async def invocations_handler(request: Request):
+    data = await request.json()
+    if "messages" in data:
+        target_url = f"{base_url}/v1/chat/completions"
+    else:
+        target_url = f"{base_url}/v1/completions"
+    return await proxy_request(request, target_url)
+
+@app.post("/v1/chat/completions")
+async def chat_completions_handler(request: Request):
+    target_url = f"{base_url}/v1/chat/completions"
+    return await proxy_request(request, target_url)
+
+@app.post("/v1/completions")
+async def completions_handler(request: Request):
+    target_url = f"{base_url}/v1/completions"
+    return await proxy_request(request, target_url)
+
+@app.get("/ping")
+@app.get("/health")
+async def health_check_handler(request: Request):
     target_url = f"{base_url}/health"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                method=request.method,
-                url=target_url,
-                headers=request.headers,
-                params=request.query
-            ) as response:
-                body = await response.read()
+    return await proxy_request(request, target_url)
 
-                # 返回响应
-                return web.Response(
-                    body=body,
-                    status=response.status,
-                    headers=response.headers
-                )
-
-    except aiohttp.ClientError as e:
-        return web.Response(
-            status=502,
-            text=f"Proxy Error: {str(e)}"
-        )
-
-
-app = web.Application()
-app.router.add_route('post', '/invocations', chat_completion_handler)
-app.router.add_route('post', '/v1/chat/completions', chat_completion_handler)
-app.router.add_route('post', '/v1/completions', chat_completion_handler)
-app.router.add_route('get', '/ping', health_check_handler)
-app.router.add_route('get', '/health', health_check_handler)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Proxy server started at http://127.0.0.1:8080")
-    web.run_app(app, port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
