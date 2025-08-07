@@ -7,10 +7,6 @@ base_dir="/opt/ml/model/"
 
 export SAGEMAKER_BIND_TO_PORT=${SAGEMAKER_BIND_TO_PORT:-8080}
 
-# start proxy server
-cd /app/
-nohup uvicorn proxy:app --host 0.0.0.0 --port 8080 --workers 32 &
-
 
 # Check if the directory exists
 if [ ! -d "$base_dir" ]; then

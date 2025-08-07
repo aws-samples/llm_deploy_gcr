@@ -10,7 +10,7 @@ COPY app/ /app
 
 # 修改restapi
 RUN \
-python3 -m pip install s5cmd requests boto3 aiohttp uvicorn httpx fastapi --no-cache-dir; \
+python3 -m pip install s5cmd boto3 --no-cache-dir; \
 chmod +x /app/serve
 
 # 让端口8080在容器外可用
