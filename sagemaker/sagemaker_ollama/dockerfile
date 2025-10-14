@@ -1,0 +1,37 @@
+ARG OLLAMA_VERSION=latest
+FROM ollama/ollama:${OLLAMA_VERSION}
+
+# 版本标签
+LABEL version="0.12.5"
+LABEL description="FastAPI Proxy for Ollama with high concurrency support"
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制requirements和应用代码
+COPY requirements.txt /app/
+COPY app/ /app/
+
+# 安装Python依赖
+RUN apt-get update \
+&&  apt-get install -y python3 python3.12-venv \
+&&  python3 -m venv /app/.venv \
+&&  . /app/.venv/bin/activate \
+&&  pip install fastapi[all] \
+&&  rm -rf /var/lib/apt/lists/* \
+&&  chmod +x /app/serve
+
+
+# 让端口8080在容器外可用
+EXPOSE 8080
+
+# 定义环境变量
+ENV PATH="/app:${PATH}"
+ENV LD_LIBRARY_PATH="/app:${LD_LIBRARY_PATH}"
+ENV PYTHONPATH="/app"
+ENV PYTHONUNBUFFERED=1
+ENV VERSION="0.12.5"
+
+# 运行FastAPI代理服务器
+ENTRYPOINT []
+CMD ["serve"]
