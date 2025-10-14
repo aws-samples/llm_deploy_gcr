@@ -7,7 +7,7 @@ echo "=== Ollama FastAPI SageMaker Endpoint - CodeBuild Deployment ==="
 # Configuration parameters - use environment variables first, fallback to defaults
 PROJECT_NAME=${PROJECT_NAME:-"sagemaker_endpoint_ollama"}
 REPO_TAG=${REPO_TAG:-"0.12.5"}
-ARCHITECTURE=${ARCHITECTURE:-"arm64"}  # Options: arm64, x86_64
+ARCHITECTURE=${ARCHITECTURE:-"arm64"}  # Options: arm64, x86_64, amd64
 REGION=${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || echo "us-west-2")}
 ACCOUNT=${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}
 
@@ -20,10 +20,14 @@ if [ "$ARCHITECTURE" = "arm64" ]; then
   CONTAINER_TYPE="ARM_CONTAINER"
   CODEBUILD_IMAGE="aws/codebuild/amazonlinux2-aarch64-standard:3.0"
   DOCKER_PLATFORM="linux/arm64"
-else
+elif [ "$ARCHITECTURE" = "x86_64" ] || [ "$ARCHITECTURE" = "amd64" ]; then
   CONTAINER_TYPE="LINUX_CONTAINER"
   CODEBUILD_IMAGE="aws/codebuild/standard:7.0"
   DOCKER_PLATFORM="linux/amd64"
+else
+  echo "Error: Unsupported architecture: $ARCHITECTURE"
+  echo "Supported architectures: arm64, x86_64, amd64"
+  exit 1
 fi
 
 echo "Configuration:"

@@ -1,6 +1,5 @@
 ARG OLLAMA_VERSION=latest
-ARG TARGETPLATFORM=linux/arm64
-FROM --platform=${TARGETPLATFORM} ollama/ollama:${OLLAMA_VERSION}
+FROM ollama/ollama:${OLLAMA_VERSION}
 
 # Version labels
 LABEL version="0.12.5"
