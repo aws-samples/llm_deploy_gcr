@@ -12,7 +12,7 @@ echo "Starting Ollama service with model: $OLLAMA_MODEL_ID"
 source /app/.venv/bin/activate
 
 export OLLAMA_HOST="0.0.0.0:8000"
-export OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:"-1"}
+export OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-"-1"}
 export OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-"4"}
 
 echo "Starting Ollama server on $OLLAMA_HOST..."
