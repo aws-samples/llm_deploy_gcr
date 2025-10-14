@@ -7,6 +7,7 @@ echo "=== Ollama FastAPI SageMaker Endpoint - CodeBuild Deployment ==="
 # Configuration parameters - use environment variables first, fallback to defaults
 PROJECT_NAME=${PROJECT_NAME:-"sagemaker_endpoint_ollama"}
 REPO_TAG=${REPO_TAG:-"0.12.5"}
+ARCHITECTURE=${ARCHITECTURE:-"arm64"}  # Options: arm64, x86_64
 REGION=${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || echo "us-west-2")}
 ACCOUNT=${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}
 
@@ -14,8 +15,23 @@ ACCOUNT=${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}
 S3_BUCKET=${S3_BUCKET:-"sagemaker-${REGION}-${ACCOUNT}"}
 S3_KEY=${S3_KEY:-"codebuild/${PROJECT_NAME}.zip"}
 
+# Architecture-specific configuration
+if [ "$ARCHITECTURE" = "arm64" ]; then
+  CONTAINER_TYPE="ARM_CONTAINER"
+  CODEBUILD_IMAGE="aws/codebuild/amazonlinux2-aarch64-standard:3.0"
+  DOCKER_PLATFORM="linux/arm64"
+else
+  CONTAINER_TYPE="LINUX_CONTAINER"
+  CODEBUILD_IMAGE="aws/codebuild/standard:7.0"
+  DOCKER_PLATFORM="linux/amd64"
+fi
+
 echo "Configuration:"
 echo "  Project Name: $PROJECT_NAME"
+echo "  Architecture: $ARCHITECTURE"
+echo "  Container Type: $CONTAINER_TYPE"
+echo "  CodeBuild Image: $CODEBUILD_IMAGE"
+echo "  Docker Platform: $DOCKER_PLATFORM"
 echo "  S3 Bucket: $S3_BUCKET"
 echo "  S3 Key: $S3_KEY"
 echo "  Repo Tag: $REPO_TAG"
@@ -127,7 +143,7 @@ echo "IAM permissions updated"
 cat > codebuild-project.json << EOF
 {
   "name": "$PROJECT_NAME",
-  "description": "Build and push Ollama FastAPI SageMaker Endpoint Docker image for ARM64",
+  "description": "Build and push Ollama FastAPI SageMaker Endpoint Docker image for ${ARCHITECTURE}",
   "source": {
     "type": "S3",
     "location": "$S3_BUCKET/$S3_KEY",
@@ -137,10 +153,16 @@ cat > codebuild-project.json << EOF
     "type": "NO_ARTIFACTS"
   },
   "environment": {
-    "type": "ARM_CONTAINER",
-    "image": "aws/codebuild/amazonlinux2-aarch64-standard:3.0",
+    "type": "$CONTAINER_TYPE",
+    "image": "$CODEBUILD_IMAGE",
     "computeType": "BUILD_GENERAL1_LARGE",
-    "privilegedMode": true
+    "privilegedMode": true,
+    "environmentVariables": [
+      {
+        "name": "DOCKER_PLATFORM",
+        "value": "$DOCKER_PLATFORM"
+      }
+    ]
   },
   "serviceRole": "$ROLE_ARN",
   "timeoutInMinutes": 30
@@ -225,7 +247,7 @@ if [ $? -eq 0 ]; then
   echo "  https://$REGION.console.aws.amazon.com/codesuite/codebuild/projects/$PROJECT_NAME/build/$BUILD_ID"
   echo ""
   echo "=== Deployment Complete! ==="
-  echo "Your ARM64 Docker image will be available in ECR once the build completes."
+  echo "Your $ARCHITECTURE Docker image will be available in ECR once the build completes."
 else
   echo "Failed to start build!"
   exit 1

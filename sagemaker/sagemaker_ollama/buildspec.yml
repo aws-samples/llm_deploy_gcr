@@ -39,8 +39,8 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - echo Building the Docker image for ARM64...
-      - docker build --platform linux/arm64 --build-arg OLLAMA_VERSION=${REPO_TAG} -t ${REPO_NAMESPACE}:${REPO_TAG} .
+      - echo Building the Docker image for ${DOCKER_PLATFORM:-linux/arm64}...
+      - docker build --platform ${DOCKER_PLATFORM:-linux/arm64} --build-arg OLLAMA_VERSION=${REPO_TAG} -t ${REPO_NAMESPACE}:${REPO_TAG} .
       - docker tag ${REPO_NAMESPACE}:${REPO_TAG} $REPO_NAME
       
   post_build:
