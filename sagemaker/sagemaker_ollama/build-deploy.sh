@@ -6,6 +6,7 @@ echo "=== Ollama FastAPI SageMaker Endpoint - CodeBuild Deployment ==="
 
 # Configuration parameters - use environment variables first, fallback to defaults
 PROJECT_NAME=${PROJECT_NAME:-"sagemaker_endpoint_ollama"}
+REPO_NAMESPACE=${REPO_NAMESPACE:-"sagemaker_endpoint/ollama"}
 REPO_TAG=${REPO_TAG:-"0.12.5"}
 ARCHITECTURE=${ARCHITECTURE:-"arm64"}  # Options: arm64, x86_64, amd64
 REGION=${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || echo "us-west-2")}
@@ -32,13 +33,14 @@ fi
 
 echo "Configuration:"
 echo "  Project Name: $PROJECT_NAME"
+echo "  Repo Namespace: $REPO_NAMESPACE"
+echo "  Repo Tag: $REPO_TAG"
 echo "  Architecture: $ARCHITECTURE"
 echo "  Container Type: $CONTAINER_TYPE"
 echo "  CodeBuild Image: $CODEBUILD_IMAGE"
 echo "  Docker Platform: $DOCKER_PLATFORM"
 echo "  S3 Bucket: $S3_BUCKET"
 echo "  S3 Key: $S3_KEY"
-echo "  Repo Tag: $REPO_TAG"
 echo "  Region: $REGION"
 echo "  Account: $ACCOUNT"
 echo ""
@@ -237,6 +239,7 @@ BUILD_ID=$(aws codebuild start-build \
   --project-name $PROJECT_NAME \
   --environment-variables-override \
     name=REPO_TAG,value=$REPO_TAG \
+    name=REPO_NAMESPACE,value="$REPO_NAMESPACE" \
   --query 'build.id' \
   --output text)
 
