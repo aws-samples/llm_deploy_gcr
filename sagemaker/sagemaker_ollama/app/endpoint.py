@@ -6,7 +6,7 @@ import json
 app = FastAPI()
 base_url = "http://127.0.0.1:8000"
 
-# 全局HTTP客户端，自动管理连接池
+# Global HTTP client with automatic connection pool management
 client = httpx.AsyncClient(
     limits=httpx.Limits(max_keepalive_connections=100, max_connections=1000),
     timeout=httpx.Timeout(300.0, connect=10.0)
@@ -16,18 +16,18 @@ client = httpx.AsyncClient(
 async def shutdown_event():
     await client.aclose()
 
-async def proxy_request(request: Request, target_path: str):
-    """通用代理请求处理"""
+async def endpoint_request(request: Request, target_path: str):
+    """Generic SageMaker endpoint request handler"""
     try:
-        # 读取请求体
+        # Read request body
         body = await request.body()
         
-        # 构建目标URL
+        # Build target URL
         target_url = f"{base_url}{target_path}"
         
-        # 流式返回响应
+        # Stream response
         async def generate():
-            # 使用stream=True进行真正的流式请求
+            # Use stream=True for real streaming requests
             async with client.stream(
                 method=request.method,
                 url=target_url,
@@ -45,15 +45,15 @@ async def proxy_request(request: Request, target_path: str):
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Gateway Timeout")
     except httpx.RequestError as e:
-        raise HTTPException(status_code=502, detail=f"Proxy Error: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Endpoint Error: {str(e)}")
 
 @app.post("/invocations")
 async def invocations(request: Request):
-    return await proxy_request(request, "/v1/chat/completions")
+    return await endpoint_request(request, "/v1/chat/completions")
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
-    # 检查请求体决定路由
+    # Check request body to determine routing
     body = await request.body()
     try:
         payload = json.loads(body)
@@ -64,8 +64,8 @@ async def chat_completions(request: Request):
     except:
         target_path = "/v1/chat/completions"
     
-    # 重新构建请求对象
-    class ProxyRequest:
+    # Rebuild request object
+    class EndpointRequest:
         def __init__(self, original_request, body):
             self.method = original_request.method
             self.headers = original_request.headers
@@ -75,24 +75,24 @@ async def chat_completions(request: Request):
         async def body(self):
             return self._body
     
-    proxy_req = ProxyRequest(request, body)
-    return await proxy_request(proxy_req, target_path)
+    endpoint_req = EndpointRequest(request, body)
+    return await endpoint_request(endpoint_req, target_path)
 
 @app.post("/v1/completions")
 async def completions(request: Request):
-    return await proxy_request(request, "/v1/completions")
+    return await endpoint_request(request, "/v1/completions")
 
 @app.get("/ping")
 async def ping(request: Request):
-    return await proxy_request(request, "/")
+    return await endpoint_request(request, "/")
 
 @app.get("/health")
 async def health(request: Request):
-    return await proxy_request(request, "/")
+    return await endpoint_request(request, "/")
 
 if __name__ == "__main__":
     import uvicorn
-    print("FastAPI Proxy server started at http://127.0.0.1:8080")
+    print("FastAPI SageMaker Endpoint server started at http://127.0.0.1:8080")
     uvicorn.run(
         app,
         host="127.0.0.1",

@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-FastAPI高并发代理服务器启动脚本
+FastAPI high-concurrency SageMaker endpoint server startup script
 """
 import uvicorn
 import multiprocessing
 
 if __name__ == '__main__':
-    # 获取CPU核心数
+    # Get CPU core count
     cpu_count = multiprocessing.cpu_count()
-    worker_count = min(cpu_count, 4)  # 限制最大进程数
+    worker_count = min(cpu_count, 4)  # Limit maximum process count
     
     print(f"Starting FastAPI server with {worker_count} workers...")
     
-    # 使用uvicorn启动，自动支持高并发
+    # Start with uvicorn, automatic high concurrency support
     uvicorn.run(
-        "proxy:app",
+        "endpoint:app",
         host="0.0.0.0",
         port=8080,
         workers=worker_count,

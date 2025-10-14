@@ -31,5 +31,5 @@ else
     exit 1
 fi
 
-echo "Starting FastAPI proxy server..."
+echo "Starting FastAPI SageMaker endpoint server..."
 python3 /app/run_server.py
