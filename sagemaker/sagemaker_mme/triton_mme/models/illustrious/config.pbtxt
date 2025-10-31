@@ -1,0 +1,31 @@
+name: "sd_base"
+backend: "python"
+max_batch_size: 8
+
+input [
+  {
+    name: "prompt"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+    
+  }
+]
+
+output [
+  {
+    name: "generated_image"
+    data_type: TYPE_STRING	
+    dims: [ -1 ]
+  }
+]
+
+instance_group [
+  {
+    kind: KIND_GPU
+  }
+]
+
+parameters: {
+  key: "EXECUTION_ENV_PATH",
+  value: {string_value: "/tmp/conda/sd_env.tar.gz"}
+}
