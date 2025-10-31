@@ -1,0 +1,36 @@
+ARG OLLAMA_VERSION=latest
+FROM ollama/ollama:${OLLAMA_VERSION}
+
+# Version labels
+LABEL version="0.12.5"
+LABEL description="FastAPI SageMaker Endpoint for Ollama with high concurrency support"
+
+# Copy requirements and application code
+COPY app/ /app/
+
+# Set working directory
+WORKDIR /app
+
+# Install Python dependencies
+RUN apt-get update \
+&&  apt-get install -y python3 python3.12-venv \
+&&  python3 -m venv /app/.venv \
+&&  . /app/.venv/bin/activate \
+&&  pip install fastapi[all] httpx \
+&&  rm -rf /var/lib/apt/lists/* \
+&&  chmod +x /app/serve
+
+
+# Expose port 8080
+EXPOSE 8080
+
+# Define environment variables
+ENV PATH="/app:${PATH}"
+ENV LD_LIBRARY_PATH="/app:${LD_LIBRARY_PATH}"
+ENV PYTHONPATH="/app"
+ENV PYTHONUNBUFFERED=1
+ENV VERSION="0.12.5"
+
+# Run FastAPI SageMaker endpoint server
+ENTRYPOINT []
+CMD ["serve"]
