@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e  # Exit immediately on error
+# set -e  # Exit immediately on error
+set -x  # Add this to see exactly which command fails
 
 echo "=== Ollama FastAPI SageMaker Endpoint - CodeBuild Deployment ==="
 
@@ -176,8 +177,8 @@ cat > codebuild-project.json << EOF
 EOF
 
 # Check if project already exists
-aws codebuild batch-get-projects --names $PROJECT_NAME > /dev/null 2>&1
-if [ $? -eq 0 ]; then
+PROJECT_EXISTS=$(aws codebuild batch-get-projects --names $PROJECT_NAME --query 'projects[0].name' --output text 2>/dev/null)
+if [ "$PROJECT_EXISTS" = "$PROJECT_NAME" ]; then
   echo "Updating existing CodeBuild project..."
   aws codebuild update-project --cli-input-json file://codebuild-project.json
 else
@@ -188,6 +189,8 @@ fi
 rm codebuild-project.json
 echo "CodeBuild project ready"
 echo ""
+
+
 
 # ===== Step 2: Upload Source Code to S3 =====
 echo "Step 2: Uploading source code to S3..."
